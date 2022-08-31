@@ -1,62 +1,71 @@
 import { useEffect, useState } from "react";
 
 function App() {
-  const options = ["USD", "INR", "EUR"];
+  // Supported Currencies
+  const [currenciesList, setcurrenciesList] = useState(["USD", "INR"]);
 
+  // States for base and converting currency
   const [baseCurrency, setBaseCurrency] = useState();
   const [convertedCurrency, setConvertedCurrency] = useState();
 
-  const [selectedbaseCurrency, setSelectedbaseCurrency] = useState(options[0]);
-  const [selectedconvertedCurrency, setSelectedConvertedCurrency] = useState(
-    options[0]
-  );
-
-  const [valueORCurrenyChanged, setValueORCurrenyChanged] = useState(false);
-  const [amount, setAmount] = useState();
-  const [fromCurrency, setFromCurrency] = useState();
-  const [toCurrency, setToCurrency] = useState();
-  const [resultField, setResultField] = useState();
+  // States for selected base and converting currency
+  const [selectedbaseCurrency, setSelectedbaseCurrency] = useState("USD");
+  const [selectedconvertedCurrency, setSelectedConvertedCurrency] =
+    useState("INR");
 
   useEffect(() => {
-    if (baseCurrency) {
-      setAmount(baseCurrency);
-      setFromCurrency(selectedbaseCurrency);
-      setToCurrency(selectedconvertedCurrency);
-      setResultField("base");
-      return;
-    }
+    getCurrencysList(setcurrenciesList);
+  }, []);
 
-    setAmount(convertedCurrency);
-    setFromCurrency(selectedconvertedCurrency);
-    setToCurrency(selectedbaseCurrency);
-    setResultField("converted");
-
-    console.log(resultField);
+  // Converting base cuurency
+  // called when base currency value is changed
+  useEffect(() => {
+    if (!convertedCurrency && baseCurrency !== "")
+      convertCurrency(
+        selectedbaseCurrency,
+        selectedconvertedCurrency,
+        baseCurrency,
+        setConvertedCurrency
+      );
+    return;
   }, [baseCurrency, convertedCurrency]);
 
+  // Converting converting cuurency
+  // called when converting currency value is changed
   useEffect(() => {
-    let _amount = baseCurrency ? baseCurrency : convertedCurrency;
-    let _fromCurrency = baseCurrency
-      ? selectedbaseCurrency
-      : selectedconvertedCurrency;
-    let _toCurrency = baseCurrency
-      ? selectedconvertedCurrency
-      : selectedbaseCurrency;
-    if (amount === 0) return;
-    fetch(
-      `https://api.exchangerate.host/convert?from=${_fromCurrency}&to=${_toCurrency}&amount=` +
-        _amount
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data.result);
-        baseCurrency
-          ? setConvertedCurrency(data.result)
-          : setBaseCurrency(data.result);
-      });
+    if (!baseCurrency && convertedCurrency !== "")
+      convertCurrency(
+        selectedconvertedCurrency,
+        selectedbaseCurrency,
+        convertedCurrency,
+        setBaseCurrency
+      );
+    return;
+  }, [baseCurrency, convertedCurrency]);
 
-    setValueORCurrenyChanged(false);
-  }, [baseCurrency, valueORCurrenyChanged]);
+  // Converting when base currency is changed
+  useEffect(() => {
+    convertCurrency(
+      selectedconvertedCurrency,
+      selectedbaseCurrency,
+      convertedCurrency,
+      setBaseCurrency
+    );
+    return;
+  }, [selectedbaseCurrency]);
+
+  // Converting when converting currency is changed
+  useEffect(() => {
+    convertCurrency(
+      selectedbaseCurrency,
+      selectedconvertedCurrency,
+      baseCurrency,
+      setConvertedCurrency
+    );
+    return;
+  }, [selectedconvertedCurrency]);
+
+  //Main container
   return (
     <div className="bg-slate-600 flex min-h-screen justify-center items-center">
       <div className="grid gap-y-4">
@@ -67,47 +76,45 @@ function App() {
             value={baseCurrency}
             onChange={(e) => {
               setBaseCurrency(e.target.value);
-              setValueORCurrenyChanged(true);
+              setConvertedCurrency("");
             }}
           ></input>
           <select
-            className="p-3 text-m text-black bg-transparent border-0 dark:text-gray-400 dark:border-gray-700 focus:outline-none focus:ring-0 focus:border-gray-200"
+            className="p-3 text-m text-slate-400 bg-slate-600 outline-none"
             value={selectedbaseCurrency}
             onChange={(e) => {
               setSelectedbaseCurrency(e.target.value);
-              setValueORCurrenyChanged(true);
             }}
           >
-            {options != null
-              ? options.map((currency, index) => (
-                  <option className="" key={index} value={currency}>
+            {currenciesList != null
+              ? currenciesList.map((currency, index) => (
+                  <option key={index} value={currency}>
                     {currency}
                   </option>
                 ))
               : null}
           </select>
         </div>
-        <div className="">
+        <div>
           <input
             className="text-white border-b-2 border-slate-500 outline-none bg-transparent"
             id="convertedCurrency"
             value={convertedCurrency}
             onChange={(e) => {
               setConvertedCurrency(e.target.value);
-              setValueORCurrenyChanged(true);
+              setBaseCurrency("");
             }}
           ></input>
 
           <select
-            className="p-3 text-m text-black bg-transparent border-0 dark:text-gray-400 dark:border-gray-700 focus:outline-none focus:ring-0 focus:border-gray-200"
+            className="p-3 text-m text-slate-400 bg-slate-600 border-0 outline-none"
             value={selectedconvertedCurrency}
             onChange={(e) => {
               setSelectedConvertedCurrency(e.target.value);
-              setValueORCurrenyChanged(true);
             }}
           >
-            {options != null
-              ? options.map((currency, index) => (
+            {currenciesList != null
+              ? currenciesList.map((currency, index) => (
                   <option key={index} value={currency}>
                     {currency}
                   </option>
@@ -120,4 +127,25 @@ function App() {
   );
 }
 
+// Function calls api and sets converted currency value to respective state provied
+function convertCurrency(_fromCurrency, _toCurrency, _amount, setResultField) {
+  fetch(
+    `https://api.exchangerate.host/convert?from=${_fromCurrency}&to=${_toCurrency}&amount=` +
+      _amount
+  )
+    .then((response) => response.json())
+    .then((data) => {
+      setResultField(data.result);
+    });
+}
+
+// Function calls api and sets converted currency value to respective state provied
+function getCurrencysList(setcurrenciesList) {
+  fetch(`https://api.exchangerate.host/symbols`)
+    .then((response) => response.json())
+    .then((data) => {
+      console.log(data.symbols);
+      setcurrenciesList(Object.keys(data.symbols));
+    });
+}
 export default App;
