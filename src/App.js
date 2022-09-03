@@ -139,12 +139,11 @@ function convertCurrency(_fromCurrency, _toCurrency, _amount, setResultField) {
     });
 }
 
-// Function calls api and sets converted currency value to respective state provied
+// Function calls api, gets all currency symbols and sets to respective state provied
 function getCurrencysList(setcurrenciesList) {
   fetch(`https://api.exchangerate.host/symbols`)
     .then((response) => response.json())
     .then((data) => {
-      console.log(data.symbols);
       setcurrenciesList(Object.keys(data.symbols));
     });
 }
